@@ -1,8 +1,8 @@
 import unittest
 
-from textnode import TextNode, TextType
+from textnode import TextNode, TextType, BlockType
 from htmlnode import LeafNode
-from helper import split_nodes_delimiter, extract_markdown_images, extract_markdown_links
+from helper import split_nodes_delimiter, extract_markdown_images, extract_markdown_links, split_nodes_image, split_nodes_link, text_to_textnodes, markdown_to_blocks, block_to_block_type
 
 
 class TestTextNode(unittest.TestCase):
@@ -253,6 +253,330 @@ class TestTextNode(unittest.TestCase):
         # Only properly formed links should match
         expected = []
         self.assertEqual(result, expected)
+
+    def test_split_nodes_image_basic(self):
+        node = TextNode("Here is an ![alt](url.jpg) image", TextType.TEXT)
+        result = split_nodes_image([node])
+        expected = [
+            TextNode("Here is an ", TextType.TEXT),
+            TextNode("alt", TextType.IMAGE, "url.jpg"),
+            TextNode(" image", TextType.TEXT)
+        ]
+        self.assertEqual(result, expected)
+
+    def test_split_nodes_image_multiple(self):
+        node = TextNode("![img1](url1.jpg) and ![img2](url2.png)", TextType.TEXT)
+        result = split_nodes_image([node])
+        expected = [
+            TextNode("img1", TextType.IMAGE, "url1.jpg"),
+            TextNode(" and ", TextType.TEXT),
+            TextNode("img2", TextType.IMAGE, "url2.png")
+        ]
+        self.assertEqual(result, expected)
+
+    def test_split_nodes_image_no_images(self):
+        node = TextNode("Just text", TextType.TEXT)
+        result = split_nodes_image([node])
+        self.assertEqual(result, [node])
+
+    def test_split_nodes_image_non_text(self):
+        node = TextNode("bold", TextType.BOLD)
+        result = split_nodes_image([node])
+        self.assertEqual(result, [node])
+
+    def test_split_nodes_image_at_start(self):
+        node = TextNode("![alt](url.jpg) text", TextType.TEXT)
+        result = split_nodes_image([node])
+        expected = [
+            TextNode("alt", TextType.IMAGE, "url.jpg"),
+            TextNode(" text", TextType.TEXT)
+        ]
+        self.assertEqual(result, expected)
+
+    def test_split_nodes_image_at_end(self):
+        node = TextNode("text ![alt](url.jpg)", TextType.TEXT)
+        result = split_nodes_image([node])
+        expected = [
+            TextNode("text ", TextType.TEXT),
+            TextNode("alt", TextType.IMAGE, "url.jpg")
+        ]
+        self.assertEqual(result, expected)
+
+    def test_split_nodes_link_basic(self):
+        node = TextNode("Here is a [link](url.com)", TextType.TEXT)
+        result = split_nodes_link([node])
+        expected = [
+            TextNode("Here is a ", TextType.TEXT),
+            TextNode("link", TextType.LINK, "url.com")
+        ]
+        self.assertEqual(result, expected)
+
+    def test_split_nodes_link_multiple(self):
+        node = TextNode("[link1](url1) and [link2](url2)", TextType.TEXT)
+        result = split_nodes_link([node])
+        expected = [
+            TextNode("link1", TextType.LINK, "url1"),
+            TextNode(" and ", TextType.TEXT),
+            TextNode("link2", TextType.LINK, "url2")
+        ]
+        self.assertEqual(result, expected)
+
+    def test_split_nodes_link_no_links(self):
+        node = TextNode("Just text", TextType.TEXT)
+        result = split_nodes_link([node])
+        self.assertEqual(result, [node])
+
+    def test_split_nodes_link_non_text(self):
+        node = TextNode("bold", TextType.BOLD)
+        result = split_nodes_link([node])
+        self.assertEqual(result, [node])
+
+    def test_split_nodes_link_at_start(self):
+        node = TextNode("[link](url.com) text", TextType.TEXT)
+        result = split_nodes_link([node])
+        expected = [
+            TextNode("link", TextType.LINK, "url.com"),
+            TextNode(" text", TextType.TEXT)
+        ]
+        self.assertEqual(result, expected)
+
+    def test_split_nodes_link_at_end(self):
+        node = TextNode("text [link](url.com)", TextType.TEXT)
+        result = split_nodes_link([node])
+        expected = [
+            TextNode("text ", TextType.TEXT),
+            TextNode("link", TextType.LINK, "url.com")
+        ]
+        self.assertEqual(result, expected)
+
+    def test_text_to_textnodes_plain_text(self):
+        text = "Just plain text"
+        result = text_to_textnodes(text)
+        expected = [TextNode("Just plain text", TextType.TEXT)]
+        self.assertEqual(result, expected)
+
+    def test_text_to_textnodes_bold(self):
+        text = "This is **bold** text"
+        result = text_to_textnodes(text)
+        expected = [
+            TextNode("This is ", TextType.TEXT),
+            TextNode("bold", TextType.BOLD),
+            TextNode(" text", TextType.TEXT)
+        ]
+        self.assertEqual(result, expected)
+
+    def test_text_to_textnodes_italic(self):
+        text = "This is *italic* text"
+        result = text_to_textnodes(text)
+        expected = [
+            TextNode("This is ", TextType.TEXT),
+            TextNode("italic", TextType.ITALIC),
+            TextNode(" text", TextType.TEXT)
+        ]
+        self.assertEqual(result, expected)
+
+    def test_text_to_textnodes_code(self):
+        text = "This is `code` text"
+        result = text_to_textnodes(text)
+        expected = [
+            TextNode("This is ", TextType.TEXT),
+            TextNode("code", TextType.CODE),
+            TextNode(" text", TextType.TEXT)
+        ]
+        self.assertEqual(result, expected)
+
+    def test_text_to_textnodes_image(self):
+        text = "Here is an ![alt](url.jpg) image"
+        result = text_to_textnodes(text)
+        expected = [
+            TextNode("Here is an ", TextType.TEXT),
+            TextNode("alt", TextType.IMAGE, "url.jpg"),
+            TextNode(" image", TextType.TEXT)
+        ]
+        self.assertEqual(result, expected)
+
+    def test_text_to_textnodes_link(self):
+        text = "Here is a [link](url.com)"
+        result = text_to_textnodes(text)
+        expected = [
+            TextNode("Here is a ", TextType.TEXT),
+            TextNode("link", TextType.LINK, "url.com")
+        ]
+        self.assertEqual(result, expected)
+
+    def test_text_to_textnodes_bold_italic(self):
+        text = "This is **bold** and *italic* text"
+        result = text_to_textnodes(text)
+        expected = [
+            TextNode("This is ", TextType.TEXT),
+            TextNode("bold", TextType.BOLD),
+            TextNode(" and ", TextType.TEXT),
+            TextNode("italic", TextType.ITALIC),
+            TextNode(" text", TextType.TEXT)
+        ]
+        self.assertEqual(result, expected)
+
+    def test_text_to_textnodes_all_delimiters(self):
+        text = "**Bold** and *italic* with `code`"
+        result = text_to_textnodes(text)
+        expected = [
+            TextNode("Bold", TextType.BOLD),
+            TextNode(" and ", TextType.TEXT),
+            TextNode("italic", TextType.ITALIC),
+            TextNode(" with ", TextType.TEXT),
+            TextNode("code", TextType.CODE)
+        ]
+        self.assertEqual(result, expected)
+
+    def test_text_to_textnodes_with_images_links(self):
+        text = "Check this ![image](img.jpg) and [link](url.com)"
+        result = text_to_textnodes(text)
+        expected = [
+            TextNode("Check this ", TextType.TEXT),
+            TextNode("image", TextType.IMAGE, "img.jpg"),
+            TextNode(" and ", TextType.TEXT),
+            TextNode("link", TextType.LINK, "url.com")
+        ]
+        self.assertEqual(result, expected)
+
+    def test_text_to_textnodes_complex(self):
+        text = "This is **bold**, *italic*, `code`, ![image](img.jpg) and [link](url.com)"
+        result = text_to_textnodes(text)
+        expected = [
+            TextNode("This is ", TextType.TEXT),
+            TextNode("bold", TextType.BOLD),
+            TextNode(", ", TextType.TEXT),
+            TextNode("italic", TextType.ITALIC),
+            TextNode(", ", TextType.TEXT),
+            TextNode("code", TextType.CODE),
+            TextNode(", ", TextType.TEXT),
+            TextNode("image", TextType.IMAGE, "img.jpg"),
+            TextNode(" and ", TextType.TEXT),
+            TextNode("link", TextType.LINK, "url.com")
+        ]
+        self.assertEqual(result, expected)
+
+    def test_markdown_to_blocks_basic(self):
+        markdown = "This is the first block\n\nThis is the second block\n\nThis is the third block"
+        result = markdown_to_blocks(markdown)
+        expected = ["This is the first block", "This is the second block", "This is the third block"]
+        self.assertEqual(result, expected)
+
+    def test_markdown_to_blocks_single_block(self):
+        markdown = "This is a single block"
+        result = markdown_to_blocks(markdown)
+        expected = ["This is a single block"]
+        self.assertEqual(result, expected)
+
+    def test_markdown_to_blocks_empty_string(self):
+        markdown = ""
+        result = markdown_to_blocks(markdown)
+        expected = []
+        self.assertEqual(result, expected)
+
+    def test_markdown_to_blocks_whitespace_only(self):
+        markdown = "   \n\n  \n\n   "
+        result = markdown_to_blocks(markdown)
+        expected = []
+        self.assertEqual(result, expected)
+
+    def test_markdown_to_blocks_strips_whitespace(self):
+        markdown = "  First block  \n\n  Second block  \n\n  Third block  "
+        result = markdown_to_blocks(markdown)
+        expected = ["First block", "Second block", "Third block"]
+        self.assertEqual(result, expected)
+
+    def test_markdown_to_blocks_multiple_empty_lines(self):
+        markdown = "First block\n\n\n\nSecond block\n\n\n\n\nThird block"
+        result = markdown_to_blocks(markdown)
+        expected = ["First block", "Second block", "Third block"]
+        self.assertEqual(result, expected)
+
+    def test_markdown_to_blocks_leading_trailing_empty(self):
+        markdown = "\n\nFirst block\n\nSecond block\n\n"
+        result = markdown_to_blocks(markdown)
+        expected = ["First block", "Second block"]
+        self.assertEqual(result, expected)
+
+    def test_block_to_block_type_heading(self):
+        block = "# This is a heading"
+        result = block_to_block_type(block)
+        self.assertEqual(result, BlockType.HEADING)
+
+    def test_block_to_block_type_heading_h2(self):
+        block = "## This is a heading"
+        result = block_to_block_type(block)
+        self.assertEqual(result, BlockType.HEADING)
+
+    def test_block_to_block_type_heading_h6(self):
+        block = "###### This is a heading"
+        result = block_to_block_type(block)
+        self.assertEqual(result, BlockType.HEADING)
+
+    def test_block_to_block_type_heading_no_space(self):
+        block = "#This is not a heading"
+        result = block_to_block_type(block)
+        self.assertEqual(result, BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_code(self):
+        block = "```python\nprint('hello')\n```"
+        result = block_to_block_type(block)
+        self.assertEqual(result, BlockType.CODE)
+
+    def test_block_to_block_type_code_no_end(self):
+        block = "```python\nprint('hello')"
+        result = block_to_block_type(block)
+        self.assertEqual(result, BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_quote(self):
+        block = "> This is a quote"
+        result = block_to_block_type(block)
+        self.assertEqual(result, BlockType.QUOTE)
+
+    def test_block_to_block_type_quote_no_space(self):
+        block = ">This is not a quote"
+        result = block_to_block_type(block)
+        self.assertEqual(result, BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_unordered_list_dash(self):
+        block = "- This is a list item"
+        result = block_to_block_type(block)
+        self.assertEqual(result, BlockType.UNORDERED_LIST)
+
+    def test_block_to_block_type_unordered_list_asterisk(self):
+        block = "* This is a list item"
+        result = block_to_block_type(block)
+        self.assertEqual(result, BlockType.UNORDERED_LIST)
+
+    def test_block_to_block_type_unordered_list_no_space(self):
+        block = "-This is not a list item"
+        result = block_to_block_type(block)
+        self.assertEqual(result, BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_ordered_list(self):
+        block = "1. This is a list item"
+        result = block_to_block_type(block)
+        self.assertEqual(result, BlockType.ORDERED_LIST)
+
+    def test_block_to_block_type_ordered_list_9(self):
+        block = "9. This is a list item"
+        result = block_to_block_type(block)
+        self.assertEqual(result, BlockType.ORDERED_LIST)
+
+    def test_block_to_block_type_ordered_list_10(self):
+        block = "10. This is not a list item"
+        result = block_to_block_type(block)
+        self.assertEqual(result, BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_ordered_list_no_space(self):
+        block = "1.This is not a list item"
+        result = block_to_block_type(block)
+        self.assertEqual(result, BlockType.PARAGRAPH)
+
+    def test_block_to_block_type_paragraph(self):
+        block = "This is just a regular paragraph"
+        result = block_to_block_type(block)
+        self.assertEqual(result, BlockType.PARAGRAPH)
 
 
 
