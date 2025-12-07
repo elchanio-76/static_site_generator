@@ -9,7 +9,7 @@ def copy_static_to_public(source_dir: str = None, target_dir: str = None):
     if not source_dir:
         source_dir = "./static"
     if not target_dir:
-        target_dir = "./public"
+        target_dir = "./docs"
     
     # check if paths are within project workspace
     if not os.path.abspath(source_dir).startswith(os.path.abspath(os.getcwd())):
