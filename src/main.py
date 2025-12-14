@@ -7,7 +7,7 @@ def copy_static_to_public(source_dir: str = None, target_dir: str = None):
     import shutil
     import os
     if not source_dir:
-        source_dir = "./static"
+        source_dir = "./public"
     if not target_dir:
         target_dir = "./docs"
     
